@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>narrate demo</title>
+<style>
+#stage { position: relative; width: 1280px; height: 720px; margin: 0 auto; background: #fff; }
+.slide { position: absolute; inset: 0; padding: 60px; box-sizing: border-box; font: 40px/1.4 sans-serif; }
+.slide h1 { font-size: 64px; margin: 0 0 30px; }
+.title { display: flex; flex-direction: column; justify-content: center; text-align: center; }
+</style>
+</head>
+<body>
+<div id="stage">
+<section class="slide"><h1>Names</h1><p>Oziewicz wrote ℏ.</p></section>
+<section class="slide"><h1>Homographs</h1><p>We read the papers; ψ₀ is the initial state.</p></section>
+<section class="slide title"><h1>Γ and the end</h1></section>
+</div>
+<div id="notes"></div>
+<script>
+const NOTES = ["Oziewicz wrote ℏ for the reduced constant.", "We read the papers. ψ₀ is the initial state.", "Γ is the gamma function; the end."];
+</script>
+</body>
+</html>
