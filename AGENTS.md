@@ -10,4 +10,6 @@
   what differs (page SHA-256, clips) and why.
 - **Users pin tags.** wpmw, oziewicz and the `pptx-voiceover` skill install a
   tag, so a change reaches them only when they move to a new tag. Say in
-  `CHANGELOG.md` what a project must change when it does.
+  `CHANGELOG.md` what a project must change when it does. With each new tag,
+  update the install line in `README.md` and the pin in the `pptx-voiceover`
+  skill (billpage/claude-plugins, with a plugin version bump).

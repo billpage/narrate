@@ -26,7 +26,7 @@ const NOTES = ["notes for slide 1", "notes for slide 2", ...];
 
 | Part | Rule |
 |---|---|
-| `<head>` | Everything before `</head>` goes into the narrated page. |
+| `<head>` | Required. Everything before `</head>` goes into the narrated page. |
 | Stage | `<div id="stage">` written exactly so. The stage is the text from it to `<div id="notes"`, which must follow it. |
 | Slides | Every element in the stage whose class list contains the token `slide` (`class="slide"`, `class="slide title"`): the same elements the player finds with `querySelectorAll('.slide')`. Do not use the class `slide` for anything that is not a slide. |
 | Size | Width and height from the first `#stage { ... width: Wpx; height: Hpx` rule, in that order; 1920 × 1080 if there is none. |
