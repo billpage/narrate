@@ -1,0 +1,23 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "narrate"
+version = "0.2.0"
+description = "Narrate slide pages and PowerPoint decks from their speaker notes"
+readme = "README.md"
+license = "MIT"
+authors = [{ name = "Bill Page" }]
+requires-python = ">=3.9"
+dependencies = ["edge-tts"]
+
+[project.optional-dependencies]
+pptx = ["python-pptx", "lxml"]
+piper = ["piper-tts"]
+
+[project.scripts]
+voiceover = "narrate.voiceover:main"
+
+[project.urls]
+Source = "https://github.com/billpage/narrate"
