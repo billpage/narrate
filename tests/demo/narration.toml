@@ -1,0 +1,11 @@
+# A minimal project for testing `narrate`. The tests copy this folder and
+# replace narration_dir and output_worktree with temporary paths.
+repo = "example/demo"
+narration_dir = "build/narration"
+output_worktree = "build/demo-output"
+terms = ["demo_terms.json"]
+hash_list = "talks/narrated.sha256"
+
+[voice]
+tts = "silent"
+reencode = 32

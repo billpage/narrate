@@ -1,5 +1,29 @@
 # Changelog
 
+## 0.3.0 (19 November 2026)
+
+- `narrate render` and `narrate publish`, with settings from `narration.toml`
+  (see `narrate --help`), in place of wpmw's `narrate.sh` and
+  `publish_narrated.sh`.
+- Pronunciations in three layers: `narrate/terms/common.json` (the 13 physics
+  entries that were the `pptx-voiceover` skill's example), the project's
+  `terms`, the talk's `pronunciations.json`; merged into
+  `<outdir>/<name>_terms.json`.
+- Hash gate: with `hash_list` set, `publish` writes the page's SHA-256 line in
+  the working copy and does not start the Pages workflow.
+- `publish` refuses a page whose audio is linked (`--link`). wpmw's
+  `publish_narrated.sh` looked for `const EMBEDDED = false`, which the page
+  never contains (it writes `const SW = .., SH = .., EMBEDDED = false`), so its
+  check never fired.
+- `tests/`: a three-slide demo project and pytest tests.
+
+`voiceover` is unchanged. To switch a project: add `narration.toml`; call
+`narrate render` and `narrate publish` where `narrate.sh` and
+`publish_narrated.sh` were called. The package layer can change spoken text
+(for example `ψ₀` becomes "psi zero" instead of "psi 0"), so run
+`narrate render … --preview` and compare `<name>_spoken.txt` before a long
+render; `package_terms = false` turns the layer off.
+
 ## 0.2.1 (19 November 2026)
 
 - A slides page without `</head>` now stops with an error message instead

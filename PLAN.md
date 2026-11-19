@@ -66,9 +66,9 @@ from the sandbox); the code path is the same file.
 | Step | Change | Tag |
 |---|---|---|
 | 0 | `voiceover` moved unchanged; `pip install` works: done | v0.1.0 |
-| 1 | `pptx-voiceover` installs v0.1.0 instead of `curl` from wpmw | (claude-plugins) |
+| 1 | `pptx-voiceover` installs a tag instead of `curl` from wpmw: done | (claude-plugins) |
 | 2 | cache by spoken text; slide count by class token; written interface (`INTERFACE.md`): done | v0.2.0 |
-| 3 | `narrate render` / `narrate publish` with `narration.toml` and the hash gate; package terms layer | v0.3.0 |
+| 3 | `narrate render` / `narrate publish` with `narration.toml` and the hash gate; package terms layer: done | v0.3.0 |
 | 4 | oziewicz switches (the case with the hash gate first) | (oziewicz) |
 | 5 | `narrate build-deck` and the frame; oziewicz drops `build_deck.py`, `tex_svg.mjs` | v0.4.0 |
 | 6 | `narrate test-pronunciation` (candidate spellings, alone and in sentences, chosen and reference voice, one page of players) | v0.5.0 |
