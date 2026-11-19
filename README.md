@@ -5,7 +5,7 @@ self-contained web page (slides, audio player, transcript) by default,
 optionally a PowerPoint with click-to-play audio.
 
 ```bash
-pip install "narrate[pptx] @ git+https://github.com/billpage/narrate@v0.1.0"
+pip install "narrate[pptx] @ git+https://github.com/billpage/narrate@v0.2.1"
 voiceover --help
 ```
 

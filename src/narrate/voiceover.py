@@ -180,6 +180,8 @@ def deck_from_html(path):
     n = count_slides(stage)
     if n != len(notes):
         sys.exit(f"error: {n} slides but {len(notes)} notes in {path}")
+    if "</head>" not in src:
+        sys.exit(f"error: {path} has no </head>; a slides page needs a <head> (its contents are copied into the narrated page)")
     head = src[:src.index("</head>")]
     m = re.search(r"#stage\s*\{[^}]*?width:\s*(\d+)px;\s*height:\s*(\d+)px", src)
     size = (int(m.group(1)), int(m.group(2))) if m else (1920, 1080)

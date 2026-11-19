@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.1 (19 November 2026)
+
+- A slides page without `</head>` now stops with an error message instead
+  of a Python `ValueError` traceback.
+- `README.md` installs the current tag (it still named `v0.1.0`).
+
+To switch: change the tag to `v0.2.1`. Output is unchanged.
+
 ## 0.2.0 (19 November 2026)
 
 - Clips are kept in `audio/clips/` under a hash of their spoken text and

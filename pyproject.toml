@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "narrate"
-version = "0.2.0"
+version = "0.2.1"
 description = "Narrate slide pages and PowerPoint decks from their speaker notes"
 readme = "README.md"
 license = "MIT"
