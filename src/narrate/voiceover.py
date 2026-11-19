@@ -19,6 +19,7 @@ Source (the deck to narrate), either:
 Output (in --outdir, default ./<name>_narration/):
   <name>_narrated.html   the narrated page
   audio/slide_NN.mp3     one clip per slide (NN = position, 01 = first)
+  audio/clips/           every clip made, named by a hash of its text and settings
   <name>_spoken.txt      the exact text sent to the voice, per slide
   <name>_narrated.pptx   only with --pptx
 
@@ -36,10 +37,14 @@ Examples:
   python3 voiceover.py deck.html --pptx exported.pptx                       # page + PowerPoint
   python3 voiceover.py talk.pptx --pptx                                     # pptx source, both outputs
 
-Re-running is cheap: a slide whose spoken text, voice and rate are unchanged
-keeps its clip (audio/slide_NN.txt records what it was made from), so after a
-failure, or after fixing a pronunciation, only the affected slides are
-synthesised again.  The Edge voice is asked for at most about 1200 characters
+Re-running is cheap: clips are kept in audio/clips/ under a hash of what they
+were made from (voice back-end, voice, rate, --max-chars, --join and the spoken
+text), and audio/slide_NN.mp3 is a copy for the slide's position.  A slide whose
+spoken text and settings are unchanged keeps its clip even when slides are
+inserted, removed or moved, so after a failure, after fixing a pronunciation
+or after inserting a slide, only the affected slides are synthesised again.
+Clips made before this store existed are adopted from audio/slide_NN.mp3 when
+audio/slide_NN.txt records the same text, voice and rate.  The Edge voice is asked for at most about 1200 characters
 at a time; a request that stalls is abandoned after --timeout seconds, and a
 failed one is retried three times, 5, 20 and 60 s apart.  --pause sets the
 wait between requests (default 1 s); if many first tries are refused, a
@@ -65,6 +70,7 @@ LibreOffice and poppler (pdftoppm) for a .pptx source.
 import argparse
 import asyncio
 import base64
+import hashlib
 import html
 import json
 import os
@@ -148,10 +154,19 @@ class Deck:
         self.name, self.notes, self.head, self.stage, self.size = name, notes, head, stage, size
 
 
+CLASS_ATTR = re.compile(r"""\bclass\s*=\s*(["'])(.*?)\1""", re.S)
+
+
+def count_slides(html_text):
+    """Elements whose class list contains the token `slide`: what the page's
+    player selects with document.querySelectorAll('.slide')."""
+    return sum("slide" in m.group(2).split() for m in CLASS_ATTR.finditer(html_text))
+
+
 def deck_from_html(path):
     src = Path(path).read_text(encoding="utf-8")
     m = re.search(r"const NOTES = (\[.*?\]);\n", src, re.S)
-    if not m or '<div id="stage">' not in src or 'class="slide"' not in src:
+    if not m or '<div id="stage">' not in src or not count_slides(src):
         sys.exit(f"error: {path} is not a slides page of the expected kind "
                  "(needs <div id=\"stage\">, class=\"slide\" sections and a NOTES array)")
     if 'id="nv-audio"' in src:
@@ -162,7 +177,7 @@ def deck_from_html(path):
     if end is None:
         sys.exit("error: could not find the end of the #stage block (<div id=\"notes\"> missing)")
     stage = src[start:end].rstrip()
-    n = stage.count('class="slide"')
+    n = count_slides(stage)
     if n != len(notes):
         sys.exit(f"error: {n} slides but {len(notes)} notes in {path}")
     head = src[:src.index("</head>")]
@@ -943,24 +958,42 @@ def main():
         if (args.reencode or args.declick or args.highpass) and shutil.which("ffmpeg") is None:
             sys.exit("error: --reencode, --declick and --highpass need ffmpeg")
         print(f"audio  : {audio_dir}  ({'reusing' if args.reuse_audio else args.tts + ' ' + voice})", flush=True)
+        store = audio_dir / "clips"
+        store.mkdir(exist_ok=True)
+        legacy = {}                     # clips made before the store: stamp text -> slide_NN.mp3
+        for st in sorted(audio_dir.glob("slide_[0-9][0-9].txt")):
+            old = st.with_suffix(".mp3")
+            if old.exists() and old.stat().st_size > 0:
+                legacy.setdefault(st.read_text(encoding="utf-8"), old.read_bytes())
+        for f in audio_dir.glob("slide_[0-9][0-9]*"):   # positions past the end of the deck
+            if f.is_file() and int(f.name[6:8]) > len(spoken):
+                f.unlink()
         clips, failed, kept = [], [], 0
         run_of_failures, gave_up = 0, False
         for k, text in enumerate(spoken, 1):
             mp3 = audio_dir / f"slide_{k:02d}.mp3"
             stamp = audio_dir / f"slide_{k:02d}.txt"        # what the clip was made from
-            key = f"{args.tts}|{voice}|{args.rate}\n{text}"
+            joins = audio_dir / f"slide_{k:02d}_joins.txt"
+            old_key = f"{args.tts}|{voice}|{args.rate}\n{text}"
+            key = f"{args.tts}|{voice}|{args.rate}|{args.max_chars}|{args.join}\n{text}"
+            h = hashlib.sha256(key.encode("utf-8")).hexdigest()[:16]
+            clip = store / f"{h}.mp3"
+            clip_joins = store / f"{h}_joins.txt"
+            forced = resynth is None or k in resynth
+            if (not args.reuse_audio and text and not forced and not (clip.exists() and clip.stat().st_size > 0)
+                    and old_key in legacy):
+                clip.write_bytes(legacy[old_key])              # adopt a clip from before the store
             if args.reuse_audio:
                 ok = mp3.exists() and mp3.stat().st_size > 0
                 print(f"    slide {k:2d}: {'found' if ok else 'no mp3'}", flush=True)
             elif not text:
                 print(f"    slide {k:2d}: no notes", flush=True)
                 ok = False
-                for f in (mp3, stamp):
+                for f in (mp3, stamp, joins):
                     if f.exists():
                         f.unlink()
-            elif (resynth is not None and k not in resynth and mp3.exists() and mp3.stat().st_size > 0 and stamp.exists()
-                  and stamp.read_text(encoding="utf-8") == key):
-                print(f"    slide {k:2d}: unchanged, kept ({mp3.stat().st_size // 1024} KB)", flush=True)
+            elif not forced and clip.exists() and clip.stat().st_size > 0:
+                print(f"    slide {k:2d}: unchanged, kept ({clip.stat().st_size // 1024} KB)", flush=True)
                 ok = True
                 kept += 1
             elif gave_up:
@@ -968,14 +1001,25 @@ def main():
                 ok = False
             else:
                 print(f"    slide {k:2d}: synthesising ... ", end="", flush=True)
-                ok = BACKENDS[args.tts](text, str(mp3), voice=voice, rate=args.rate,
+                for f in (clip, clip_joins):
+                    if f.exists():
+                        f.unlink()
+                ok = BACKENDS[args.tts](text, str(clip), voice=voice, rate=args.rate,
                                         timeout=args.timeout, pause=args.pause,
                                         max_chars=args.max_chars, join=args.join)
+                ok = bool(ok) and clip.exists() and clip.stat().st_size > 0
+                if not ok and clip.exists():
+                    clip.unlink()                    # a partial clip must not be kept next time
+                print(f" ok ({clip.stat().st_size // 1024} KB)" if ok else " FAILED", flush=True)
+            if text and not args.reuse_audio:           # the position copy follows the store
+                for f in (mp3, stamp, joins):
+                    if f.exists():
+                        f.unlink()
                 if ok:
-                    stamp.write_text(key, encoding="utf-8")
-                elif stamp.exists():
-                    stamp.unlink()                       # an old clip no longer matches the text
-                print(f" ok ({mp3.stat().st_size // 1024} KB)" if ok else " FAILED", flush=True)
+                    shutil.copyfile(clip, mp3)
+                    stamp.write_text(old_key, encoding="utf-8")
+                    if clip_joins.exists():
+                        shutil.copyfile(clip_joins, joins)
             if not ok and text:
                 failed.append(k)
             if text and not args.reuse_audio and not gave_up:

@@ -56,18 +56,18 @@ from the sandbox); the code path is the same file.
    the slide number. Store clips as `audio/clips/<hash>.mp3`, hash of the key
    plus `max_chars` and `join` (both change the clip), and adopt existing
    `slide_NN.mp3` whose stamp matches, so no finished render is synthesised
-   again.
+   again. Done in v0.2.0; see `INTERFACE.md`.
 6. **Slide count.** `deck_from_html` counts the substring `class="slide"`, so
    `class="slide title"` is missed. Count `<section>` elements whose class list
-   contains the token `slide` instead of documenting the restriction.
+   contains the token `slide`, as the player does. Done in v0.2.0.
 
 ## Order of work
 
 | Step | Change | Tag |
 |---|---|---|
-| 0 | `voiceover` moved unchanged; `pip install` works | v0.1.0 |
+| 0 | `voiceover` moved unchanged; `pip install` works: done | v0.1.0 |
 | 1 | `pptx-voiceover` installs v0.1.0 instead of `curl` from wpmw | (claude-plugins) |
-| 2 | cache by spoken text; slide count by class token; written interface (`INTERFACE.md`) | v0.2.0 |
+| 2 | cache by spoken text; slide count by class token; written interface (`INTERFACE.md`): done | v0.2.0 |
 | 3 | `narrate render` / `narrate publish` with `narration.toml` and the hash gate; package terms layer | v0.3.0 |
 | 4 | oziewicz switches (the case with the hash gate first) | (oziewicz) |
 | 5 | `narrate build-deck` and the frame; oziewicz drops `build_deck.py`, `tex_svg.mjs` | v0.4.0 |
