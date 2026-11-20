@@ -5,7 +5,7 @@ self-contained web page (slides, audio player, transcript) by default,
 optionally a PowerPoint with click-to-play audio.
 
 ```bash
-pipx install "narrate[pptx] @ git+https://github.com/billpage/narrate@v0.5.0"
+pipx install "narrate[pptx] @ git+https://github.com/billpage/narrate@v1.0.0"
 voiceover --help      # the narrator itself
 narrate --help        # the narrator with a project's settings, and publishing
 ```
@@ -19,7 +19,7 @@ works too.
 ## In a project
 
 A repository that narrates talks keeps its settings in `narration.toml` at its
-root. For billpage/oziewicz it would be (planned; the terms file does not exist yet):
+root. For billpage/oziewicz it is:
 
 ```toml
 repo = "billpage/oziewicz"
@@ -92,6 +92,8 @@ of `python3 voiceover.py`. Version 0.3.0 adds the `narrate` command in place of
 wpmw's `narrate.sh` and `publish_narrated.sh`. The rest of the plan (a deck
 builder for TeX sources, a pronunciation test page) is in [`PLAN.md`](PLAN.md);
 version 0.4.0 adds the deck builder and 0.5.0 the pronunciation test page.
+Version 1.0.0 is the same code: it marks the end of the plan, when wpmw
+switched to the package and deleted its own copy of the tools.
 
 ## License
 
