@@ -5,10 +5,16 @@ self-contained web page (slides, audio player, transcript) by default,
 optionally a PowerPoint with click-to-play audio.
 
 ```bash
-pip install "narrate[pptx] @ git+https://github.com/billpage/narrate@v0.3.0"
+pipx install "narrate[pptx] @ git+https://github.com/billpage/narrate@v0.3.1"
 voiceover --help      # the narrator itself
 narrate --help        # the narrator with a project's settings, and publishing
 ```
+
+`pipx` (`sudo apt install pipx`) gives the two commands their own environment;
+a plain `pip install` is refused by the system Python of Debian, Ubuntu and
+Mint (PEP 668). To move to a later tag, run the same line with `--force` and
+the new tag. Inside a virtual environment, `pip install` with the same argument
+works too.
 
 ## In a project
 
@@ -37,7 +43,8 @@ narrate publish ~/oziewicz-narration/grassmann_to_clifford/grassmann_to_clifford
 ```
 
 Options after the slides page go to `voiceover` (`--resynth 5`, `--tts piper`,
-…) and override `[voice]`. Pronunciations are merged from three layers, a later
+…) and override `[voice]`; `--name` also names the folder, so two renders of
+one page (two voices, say) do not share one. Pronunciations are merged from three layers, a later
 one winning on the same key: narrate's `terms/common.json`, the project's
 `terms`, and the talk's `pronunciations.json` beside the slides page. With a
 hash gate, `publish` pushes the page to the output branch and writes its
