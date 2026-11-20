@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.3.1 (19 November 2026)
+
+- `narrate render … --name NAME` renders into `<narration_dir>/NAME/`, not
+  `<narration_dir>/<deck name>/`, so two renders of one page under different
+  names no longer share a folder (and its `slide_NN.mp3` copies).
+- The `run :` line shows the slides page again.
+- `README.md`: install with `pipx` (a plain `pip install` is refused by the
+  system Python of Debian, Ubuntu and Mint).
+
+To switch: `pipx install --force "narrate[pptx] @
+git+https://github.com/billpage/narrate@v0.3.1"`. A render that used `--name`
+without `-d` now goes to a new folder; move the old folder there to keep its
+clips.
+
 ## 0.3.0 (19 November 2026)
 
 - `narrate render` and `narrate publish`, with settings from `narration.toml`

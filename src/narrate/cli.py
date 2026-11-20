@@ -1,7 +1,7 @@
 """narrate - render and publish narrated slide pages with a project's settings.
 
     narrate config                      show the settings found for this directory
-    narrate render SLIDES.html [voiceover options]
+    narrate render SLIDES.html [voiceover options]   (folder: <narration_dir>/<--name or deck name>)
     narrate publish PAGE_narrated.html [--no-dispatch]
 
 Settings come from `narration.toml`, looked for in the current directory and
@@ -10,7 +10,7 @@ paths in it are relative to that root. Without the file, `render` uses
 voiceover's own defaults with narrate's common terms, and `publish` refuses.
 
     repo = "owner/name"                    # GitHub repository (for publish)
-    narration_dir = "~/name-narration"     # renders go to <narration_dir>/<deck name>/
+    narration_dir = "~/name-narration"     # renders go to <narration_dir>/<--name, or deck name>/
     output_worktree = "~/name-output"      # a worktree of the output branch (for publish)
     output_branch = "output"
     published_dir = "narrated"             # folder on the output branch
@@ -179,7 +179,7 @@ def cmd_render(args, rest):
     if not slides.is_file():
         die(f"{slides} not found")
     s = load_settings()
-    name = slides.stem
+    name = option_value(rest, "--name") or slides.stem     # voiceover names its files so too
     if args.outdir:
         outdir = Path(args.outdir).expanduser()
     elif s["narration_dir"]:
@@ -209,7 +209,7 @@ def cmd_render(args, rest):
     cmd += ["--pronunciations", str(terms_file)] + rest
     if ("reencode" in voice or option_value(rest, "--reencode")) and shutil.which("ffmpeg") is None:
         die("ffmpeg is needed for --reencode (sudo apt install ffmpeg)")
-    print("run    : voiceover " + " ".join(shlex.quote(c) for c in cmd[5:]), flush=True)
+    print("run    : voiceover " + " ".join(shlex.quote(c) for c in cmd[4:]), flush=True)
     if args.dry_run:
         return
     code = subprocess.call(cmd)
@@ -326,7 +326,7 @@ def main(argv=None):
     sub.add_parser("config", help="show the settings found for this directory")
     r = sub.add_parser("render", help="narrate a slides page (other options go to voiceover)")
     r.add_argument("slides")
-    r.add_argument("-d", "--outdir", help="output folder (default: <narration_dir>/<name>)")
+    r.add_argument("-d", "--outdir", help="output folder (default: <narration_dir>/<--name or deck name>)")
     r.add_argument("--pronunciations", help="an extra pronunciation file, applied last")
     r.add_argument("--dry-run", action="store_true", help="show the voiceover command and stop")
     p = sub.add_parser("publish", help="push a checked page to the output branch")

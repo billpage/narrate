@@ -146,3 +146,11 @@ def test_publish_without_gate_and_refusals(project):
     assert r.returncode == 1 and "links its audio" in r.stdout
     r = narrate(project["root"], "publish", str(project["root"] / "talks" / "demo" / "demo.html"), check=False)
     assert r.returncode == 1 and "_narrated.html" in r.stdout
+
+
+def test_name_sets_folder_and_run_line_shows_page(project):
+    r = narrate(project["root"], "render", "talks/demo/demo.html", "--name", "demo_b", "--preview")
+    assert "run    : voiceover talks/demo/demo.html -d " in r.stdout
+    folder = project["renders"] / "demo_b"
+    assert (folder / "demo_b_spoken.txt").is_file() and (folder / "demo_b_terms.json").is_file()
+    assert not (project["renders"] / "demo").exists()
