@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.0.0 (20 November 2026)
+
+No change to the code or its output: the version number only. It marks step 7
+of the plan, the last: billpage/wpmw uses the package and has deleted its
+`voiceover.py`, `narrate.sh` and `publish_narrated.sh` (wpmw branch
+`claude/switch-to-narrate`). Its deck `worlds_and_particles` is now built with
+`narrate build-deck` from `talks/worlds_and_particles/`, so it has narrate's
+frame; its spoken text is unchanged.
+
+To switch from 0.5.0: change the tag to `v1.0.0`. Nothing else.
+
+To switch from wpmw's own tools (as wpmw did): add `narration.toml`
+(`[voice]` replaces `WPMW_VOICE`, `WPMW_PAUSE` and `narrate.sh`'s defaults);
+call `narrate render` and `narrate publish` where `narrate.sh` and
+`publish_narrated.sh` were called; compare `narrate render … --preview` with
+the old `--preview` before a long render.
+
 ## 0.5.0 (19 November 2026)
 
 - `narrate test-pronunciation WORDS.json [--slides PAGE]`: one self-contained
