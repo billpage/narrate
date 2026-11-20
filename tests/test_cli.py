@@ -26,6 +26,13 @@ def narrate(cwd, *args, check=True):
     return r
 
 
+def top_level(toml, line):
+    """Add a top-level setting to narration.toml (before its first table)."""
+    text = toml.read_text()
+    i = text.index("\n[") + 1
+    toml.write_text(text[:i] + line + "\n" + text[i:])
+
+
 def git(cwd, *args):
     return subprocess.run(["git", "-c", "user.name=Test", "-c", "user.email=test@invalid", *args],
                           cwd=cwd, check=True, text=True, capture_output=True).stdout.strip()
@@ -76,7 +83,7 @@ def test_command_line_layer_wins_and_package_terms_can_be_off(project, tmp_path)
     extra = tmp_path / "extra.json"
     extra.write_text(json.dumps({"the end": "the very end"}), encoding="utf-8")
     toml = project["root"] / "narration.toml"
-    toml.write_text(toml.read_text().replace("[voice]", "package_terms = false\n\n[voice]"))
+    top_level(toml, "package_terms = false")
     narrate(project["root"], "render", "talks/demo/demo.html", "--preview", "--pronunciations", str(extra))
     lines = spoken(project)
     assert "h-bar" not in lines[0]                  # ℏ comes from the package layer, now off
@@ -96,7 +103,8 @@ def test_voice_settings_and_override(project):
 
 def test_unknown_setting_is_refused(project):
     toml = project["root"] / "narration.toml"
-    toml.write_text(toml.read_text().replace("[voice]", 'hashlist = "x"\n\n[voice]') + 'speed = 2\n')
+    top_level(toml, 'hashlist = "x"')
+    toml.write_text(toml.read_text() + 'speed = 2\n')
     r = narrate(project["root"], "config", check=False)
     assert r.returncode == 1 and "unknown setting(s): hashlist, voice.speed" in r.stdout
 
@@ -154,3 +162,57 @@ def test_name_sets_folder_and_run_line_shows_page(project):
     folder = project["renders"] / "demo_b"
     assert (folder / "demo_b_spoken.txt").is_file() and (folder / "demo_b_terms.json").is_file()
     assert not (project["renders"] / "demo").exists()
+
+
+def mathjax_available():
+    root = Path(__file__).resolve().parents[1]
+    return shutil.which("node") and any((d / "node_modules" / "mathjax-full").is_dir()
+                                        for d in [root, *root.parents])
+
+
+@pytest.mark.skipif(not mathjax_available(), reason="node or mathjax-full not installed")
+def test_build_deck_with_frame_math_assets_footers(project):
+    repo = Path(__file__).resolve().parents[1]
+    nm = next(d / "node_modules" for d in [repo, *repo.parents] if (d / "node_modules" / "mathjax-full").is_dir())
+    (project["root"] / "node_modules").symlink_to(nm)    # a project has its own `npm install mathjax-full`
+    r = narrate(project["root"], "build-deck", "talks/texdemo", "--foot", "Demo")
+    page = (project["root"] / "talks" / "texdemo" / "texdemo.html").read_text(encoding="utf-8")
+    assert "3 slides, 2 with notes" in r.stdout and "narrate frame" in r.stdout
+    assert "no notes file for slide(s) 3" in r.stdout
+    assert "Demo · 1 / 3" not in page                     # data-nofoot
+    assert "Demo · 2 / 3" in page and "Demo · 3 / 3" in page
+    assert page.index("Demo · 3 / 3") > page.index('class="fig"')   # footer at the end of slide 3, not inside the figure
+    assert "\\(" not in page and "\\[" not in page and page.count("<svg") >= 2
+    assert 'fill="#2f5d8a"' in page                   # the project's macro \V (RGB 47,93,138) was used
+    assert "data:image/svg+xml;base64," in page          # asset embedded
+    frame, own = page.index("narrate frame: stage and slide geometry"), page.index(".slide { background: #fff")
+    assert frame < own                                   # frame style first, the deck's own style can override
+    assert 'const NOTES = ["This is the title slide.", "E equals m c squared.", ""];' in page
+    r = narrate(project["root"], "render", "talks/texdemo/texdemo.html", "--preview")
+    assert "(3 slides, 2 with notes)" in r.stdout        # voiceover reads the built page
+
+
+def test_build_deck_keeps_a_source_frame(project):
+    talk = project["root"] / "talks" / "own"
+    (talk / "notes").mkdir(parents=True)
+    (talk / "slides.html").write_text(
+        '<html><head><style>.slide{}</style></head><body>\n<div id="stage">\n'
+        '<section class="slide">one</section>\n<section class="slide">two</section>\n</div>\n'
+        '<div id="notes"></div>\n<script>\nconst NOTES = [];\n</script>\n</body></html>\n', encoding="utf-8")
+    (talk / "notes" / "slide_02.md").write_text("Second.\n", encoding="utf-8")
+    r = narrate(project["root"], "build-deck", "talks/own", "--name", "own_page")
+    page = (talk / "own_page.html").read_text(encoding="utf-8")
+    assert "its own frame" in r.stdout and "narrate frame" not in page
+    assert 'const NOTES = ["", "Second."];' in page and "· 2 / 2</p>" in page
+
+
+def test_build_deck_refusals(project):
+    talk = project["root"] / "talks" / "bad"
+    talk.mkdir(parents=True)
+    (talk / "slides.html").write_text('<html><head></head><body><div id="stage"><p>x</p></div></body></html>')
+    r = narrate(project["root"], "build-deck", "talks/bad", check=False)
+    assert r.returncode == 1 and "no element with the class `slide`" in r.stdout
+    (talk / "slides.html").write_text('<html><head></head><body><div id="stage"><section class="slide">'
+                                      '<img src="asset:none.png"></section></div></body></html>')
+    r = narrate(project["root"], "build-deck", "talks/bad", check=False)
+    assert r.returncode == 1 and "asset not found" in r.stdout

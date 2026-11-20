@@ -5,7 +5,7 @@ self-contained web page (slides, audio player, transcript) by default,
 optionally a PowerPoint with click-to-play audio.
 
 ```bash
-pipx install "narrate[pptx] @ git+https://github.com/billpage/narrate@v0.3.1"
+pipx install "narrate[pptx] @ git+https://github.com/billpage/narrate@v0.4.0"
 voiceover --help      # the narrator itself
 narrate --help        # the narrator with a project's settings, and publishing
 ```
@@ -28,6 +28,10 @@ output_worktree = "~/oziewicz-output"      # a worktree of the output branch
 terms = ["src/narration/oziewicz_terms.json"]
 hash_list = "talks/narrated.sha256"        # publish gate; leave out for none
 
+[deck]
+macros = "src/narration/tex_macros.json"   # TeX macros for build-deck
+assets = "~/oziewicz-output/figures"       # images named asset:F
+
 [voice]
 voice = "en-CA-LiamNeural"
 pause = 30
@@ -41,6 +45,12 @@ narrate render talks/grassmann_to_clifford/grassmann_to_clifford.html --preview
 narrate render talks/grassmann_to_clifford/grassmann_to_clifford.html
 narrate publish ~/oziewicz-narration/grassmann_to_clifford/grassmann_to_clifford_narrated.html
 ```
+
+A talk written as `slides.html` (TeX between `\(` `\)` and `\[` `\]`,
+images as `asset:NAME`) with `notes/slide_NN.md` is built into its slides page
+with `narrate build-deck talks/grassmann_to_clifford --foot "…"`, which also
+adds the shared page frame (notes panel, bar, navigation); see
+[`INTERFACE.md`](INTERFACE.md).
 
 Options after the slides page go to `voiceover` (`--resynth 5`, `--tts piper`,
 …) and override `[voice]`; `--name` also names the folder, so two renders of
@@ -64,7 +74,8 @@ Version 0.1.0 is `src/narration/voiceover.py` from
 (11 November 2026), moved here unchanged, with a `voiceover` command in place
 of `python3 voiceover.py`. Version 0.3.0 adds the `narrate` command in place of
 wpmw's `narrate.sh` and `publish_narrated.sh`. The rest of the plan (a deck
-builder for TeX sources, a pronunciation test page) is in [`PLAN.md`](PLAN.md).
+builder for TeX sources, a pronunciation test page) is in [`PLAN.md`](PLAN.md);
+version 0.4.0 adds the deck builder.
 
 ## License
 

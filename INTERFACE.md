@@ -1,4 +1,4 @@
-# What `voiceover` reads
+# What `voiceover` and `narrate build-deck` read
 
 `voiceover` narrates either a PowerPoint deck (`.pptx`, notes from its speaker
 notes) or a slides page (`.html`). This file says what a slides page must
@@ -61,3 +61,37 @@ is a copy for slide position `NN`, and `audio/slide_NN.txt` records what it was
 made from. A clip is made again only when its spoken text or settings change,
 or with `--resynth`. Inserting, removing or moving a slide does not remake the
 other slides. `audio/clips/` keeps old versions; delete it to start again.
+
+## Deck source (`narrate build-deck`)
+
+A talk folder with `slides.html` and `notes/slide_NN.md` (NN from 01) is built
+into a slides page of the form above:
+
+```bash
+narrate build-deck talks/my_talk --foot "Project · My talk"   # writes talks/my_talk/my_talk.html
+```
+
+| In `slides.html` | Becomes |
+|---|---|
+| `\( ... \)`, `\[ ... \]` | inline and centred SVG (MathJax, glyphs inside each formula); TeX macros from `[deck] macros` or `--macros` |
+| `src="asset:F"` | the image `F` from `[deck] assets` or `--assets`, embedded as a data URI |
+| an element whose class list contains `slide` | a slide, numbered in order; a footer `FOOT · k / N` is added before its closing tag unless it has `data-nofoot` |
+| `notes/slide_NN.md` | the `NN`th string of `NOTES` (missing file: `""`) |
+
+A source **without a frame** (no `<div id="notes"`) has only a `<head>` with
+its own style and a `<body>` holding `<div id="stage">`. `build-deck` adds
+narrate's frame: [`frame.css`](src/narrate/frame/frame.css) as a style before
+the source's first style (stage and slide geometry, 1920 × 1080 scaled to the
+window, the notes panel, the bar, print), and
+[`frame.html`](src/narrate/frame/frame.html) after the stage (the notes panel,
+shown at the right and below the slide in a narrow window, N toggles; the bar;
+the navigation script: arrow keys, Page Up/Down, Home/End, click left third to
+go back, `#k` in the address). The source's style sets everything else
+(colours, type, padding, the `.foot` line), and can override the frame.
+
+A source **with its own frame** keeps it; it must contain `const NOTES = [];`,
+which is filled.
+
+MathJax comes from the project's `node_modules` (`npm install mathjax-full`),
+found from the folder of `narration.toml` or the current folder upwards; `node`
+is needed only when the source has TeX.

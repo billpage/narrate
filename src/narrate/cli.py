@@ -3,6 +3,7 @@
     narrate config                      show the settings found for this directory
     narrate render SLIDES.html [voiceover options]   (folder: <narration_dir>/<--name or deck name>)
     narrate publish PAGE_narrated.html [--no-dispatch]
+    narrate build-deck TALK_FOLDER [--name N] [--foot TEXT] [--assets DIR] [--macros FILE] [--out FILE]
 
 Settings come from `narration.toml`, looked for in the current directory and
 its parents; the directory that holds it is the project root, and relative
@@ -18,6 +19,10 @@ voiceover's own defaults with narrate's common terms, and `publish` refuses.
     terms = ["path/to/terms.json"]         # project pronunciations
     package_terms = true                   # include narrate's common terms
     hash_list = "talks/narrated.sha256"    # publish gate; leave out for none
+
+    [deck]                                 # for build-deck; the command line wins
+    macros = "src/narration/tex_macros.json"   # TeX macros, {"name": "body" or ["body", nargs]}
+    assets = "~/name-output/figures"       # where src="asset:F" images are found
 
     [voice]                                # voiceover options; the command line wins
     tts = "edge"
@@ -61,8 +66,9 @@ else:  # pragma: no cover
 CONFIG = "narration.toml"
 PACKAGE_TERMS = Path(__file__).with_name("terms") / "common.json"
 KNOWN = {"repo", "narration_dir", "output_worktree", "output_branch", "published_dir",
-         "pages_workflow", "terms", "package_terms", "hash_list", "voice"}
+         "pages_workflow", "terms", "package_terms", "hash_list", "voice", "deck"}
 KNOWN_VOICE = {"tts", "voice", "pause", "reencode", "rate"}
+KNOWN_DECK = {"macros", "assets"}
 
 
 def die(msg, code=1):
@@ -88,6 +94,7 @@ def load_settings(start: Path | None = None):
             data = tomllib.load(fh)
         unknown = set(data) - KNOWN
         unknown |= {f"voice.{k}" for k in set(data.get("voice", {})) - KNOWN_VOICE}
+        unknown |= {f"deck.{k}" for k in set(data.get("deck", {})) - KNOWN_DECK}
         if unknown:
             die(f"{path}: unknown setting(s): {', '.join(sorted(unknown))}")
     root = path.parent if path else None
@@ -112,6 +119,8 @@ def load_settings(start: Path | None = None):
         "package_terms": data.get("package_terms", True),
         "hash_list": where(data.get("hash_list")),
         "voice": data.get("voice", {}),
+        "deck_macros": where(data.get("deck", {}).get("macros")),
+        "deck_assets": where(data.get("deck", {}).get("assets")),
     }
 
 
@@ -318,6 +327,31 @@ def cmd_publish(args):
     print(f"Single file : https://github.com/{s['repo']}/blob/{s['output_branch']}/{rel} (Download raw file)")
 
 
+def cmd_build_deck(args):
+    from . import deck
+    talk = Path(args.talk).expanduser()
+    s = load_settings()
+    name = args.name or talk.resolve().name
+    out = Path(args.out).expanduser() if args.out else talk / f"{name}.html"
+    macros_file = Path(args.macros).expanduser() if args.macros else s["deck_macros"]
+    macros = {}
+    if macros_file:
+        if not macros_file.is_file():
+            die(f"macros file not found: {macros_file}")
+        macros = json.loads(macros_file.read_text(encoding="utf-8"))
+    assets = Path(args.assets).expanduser() if args.assets else s["deck_assets"]
+    starts = [p for p in (s["root"], Path.cwd()) if p]
+    try:
+        r = deck.build(talk, out, assets=assets, foot=args.foot, macros=macros, node_starts=starts)
+    except deck.DeckError as e:
+        die(str(e))
+    print(f"{r['out']}: {r['slides']} slides, {r['with_notes']} with notes, {r['words']} words "
+          f"(about {r['words'] / 140:.0f} min at 140 words a minute), {r['mb']:.1f} MB; "
+          f"{'its own frame' if r['own_frame'] else 'narrate frame'}")
+    if r["missing"]:
+        print(f"no notes file for slide(s) {', '.join(map(str, r['missing']))}")
+
+
 def main(argv=None):
     argv = list(sys.argv[1:] if argv is None else argv)
     ap = argparse.ArgumentParser(prog="narrate", description="Render and publish narrated slide pages.",
@@ -332,6 +366,13 @@ def main(argv=None):
     p = sub.add_parser("publish", help="push a checked page to the output branch")
     p.add_argument("page")
     p.add_argument("--no-dispatch", action="store_true", help="do not start the Pages workflow")
+    b = sub.add_parser("build-deck", help="build a slides page from slides.html and notes/")
+    b.add_argument("talk", help="talk folder (slides.html, notes/slide_NN.md)")
+    b.add_argument("--name", help="page name (default: the folder name); writes <talk>/<name>.html")
+    b.add_argument("--out", help="write the page here instead")
+    b.add_argument("--foot", default="", help="footer text before the slide number")
+    b.add_argument("--assets", help="folder of the images named asset:F (default: [deck] assets)")
+    b.add_argument("--macros", help="JSON file of TeX macros (default: [deck] macros)")
     args, rest = ap.parse_known_args(argv)
     if args.cmd == "render":
         cmd_render(args, rest)
@@ -339,6 +380,8 @@ def main(argv=None):
         ap.error(f"unrecognized arguments: {' '.join(rest)}")
     elif args.cmd == "config":
         cmd_config(args)
+    elif args.cmd == "build-deck":
+        cmd_build_deck(args)
     else:
         cmd_publish(args)
 

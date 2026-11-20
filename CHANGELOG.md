@@ -1,5 +1,32 @@
 # Changelog
 
+## 0.4.0 (19 November 2026)
+
+- `narrate build-deck TALK`: a slides page from `slides.html` and
+  `notes/slide_NN.md`, with TeX typeset as SVG by MathJax, `asset:` images
+  embedded and footers added. From billpage/oziewicz `src/narration/build_deck.py`
+  and `tex_svg.mjs`, with these changes: TeX macros come from the project
+  (`[deck] macros`), MathJax from the project's `node_modules`; slides are
+  found by class token (`class="slide title"` counts, and a `<div>` slide
+  with nested `<div>`s gets its footer at its own end); the page is written to
+  `<talk>/<name>.html` or `--out`.
+- The shared slide-page frame (`frame/frame.css`, `frame/frame.html`): stage
+  geometry, notes panel at the right (below in a narrow window, N toggles),
+  bar, navigation script and print rules, from the oziewicz Grassmann–Clifford
+  deck. A source without a frame gets it; a source with its own keeps it.
+- `INTERFACE.md`: the deck source.
+- tests: 10 (new: build-deck with frame, TeX, asset, footers and nested
+  slides; a source with its own frame; refusals).
+
+Checked on oziewicz `talks/grassmann_to_clifford` (773505c): built from its
+`slides.html` as it is (own frame), the page is byte-identical to the committed
+one; built from the same source with its frame removed (narrate's frame
+added), all 23 slides are pixel-identical in Chrome with notes shown, hidden
+and below (narrow window), and so is the print layout. `voiceover` unchanged.
+
+To switch (oziewicz): `narrate build-deck` in place of `build_deck.py`; TeX
+macros to a JSON file named in `[deck] macros`.
+
 ## 0.3.1 (19 November 2026)
 
 - `narrate render … --name NAME` renders into `<narration_dir>/NAME/`, not
