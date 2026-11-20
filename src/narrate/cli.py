@@ -4,6 +4,7 @@
     narrate render SLIDES.html [voiceover options]   (folder: <narration_dir>/<--name or deck name>)
     narrate publish PAGE_narrated.html [--no-dispatch]
     narrate build-deck TALK_FOLDER [--name N] [--foot TEXT] [--assets DIR] [--macros FILE] [--out FILE]
+    narrate test-pronunciation WORDS.json [--slides PAGE] [--reference-voice V] [--sentences N]
 
 Settings come from `narration.toml`, looked for in the current directory and
 its parents; the directory that holds it is the project root, and relative
@@ -132,13 +133,13 @@ def pages_url(repo, published_dir, filename):
 # --------------------------------------------------------------------------
 # pronunciations
 # --------------------------------------------------------------------------
-def term_layers(settings, slides: Path, extra: str | None):
+def term_layers(settings, slides: Path | None, extra: str | None):
     layers = []
     if settings["package_terms"]:
         layers.append(("package", PACKAGE_TERMS))
     layers += [("project", p) for p in settings["terms"]]
-    talk = slides.parent / "pronunciations.json"
-    if talk.is_file():
+    talk = slides.parent / "pronunciations.json" if slides else None
+    if talk and talk.is_file():
         layers.append(("talk", talk))
     if extra:
         layers.append(("command line", Path(extra).expanduser()))
@@ -352,6 +353,46 @@ def cmd_build_deck(args):
         print(f"no notes file for slide(s) {', '.join(map(str, r['missing']))}")
 
 
+def cmd_test_pronunciation(args):
+    from . import pronounce, voiceover
+    words = Path(args.words).expanduser()
+    if not words.is_file():
+        die(f"{words} not found")
+    s = load_settings()
+    voice_cfg = dict(s["voice"])
+    tts = args.tts or voice_cfg.get("tts", "edge")
+    if args.tts and args.tts != voice_cfg.get("tts", "edge"):
+        voice_cfg = {}
+    voice = args.voice or voice_cfg.get("voice") or voiceover.DEFAULT_VOICE[tts]
+    rate = args.rate or voice_cfg.get("rate", "+0%")
+    notes, layers = [], term_layers(s, None, None)
+    if args.slides:
+        slides = Path(args.slides).expanduser()
+        if not slides.is_file():
+            die(f"{slides} not found")
+        notes = voiceover.deck_from_html(slides).notes
+        layers = term_layers(s, slides, None)
+    terms, _ = merge_terms(layers)
+    if args.dir:
+        out = Path(args.dir).expanduser()
+    elif s["narration_dir"]:
+        out = s["narration_dir"] / "pronunciation"
+    else:
+        out = Path.cwd() / "pronunciation"
+    out.mkdir(parents=True, exist_ok=True)
+    print("terms  : " + "; ".join(f"{k} {p}" for k, p in layers) + f" ({len(terms)} entries)")
+    print(f"voice  : {voice or tts} ({tts}, rate {rate})" + (f"; notes from {args.slides}" if args.slides else ""))
+    try:
+        r = pronounce.build(words, out, tts=tts, voice=voice, rate=rate, terms=terms, notes=notes,
+                            sentences=args.sentences, reference_voice=args.reference_voice)
+    except pronounce.PronounceError as e:
+        die(str(e))
+    print(f"page   : {r['page']}  ({r['words']} words; {r['made']} clips made, {r['kept']} kept)")
+    if r["failed"]:
+        print(f"failed : {len(r['failed'])} clips (shown as 'failed'); run again to retry")
+        sys.exit(1)
+
+
 def main(argv=None):
     argv = list(sys.argv[1:] if argv is None else argv)
     ap = argparse.ArgumentParser(prog="narrate", description="Render and publish narrated slide pages.",
@@ -373,6 +414,15 @@ def main(argv=None):
     b.add_argument("--foot", default="", help="footer text before the slide number")
     b.add_argument("--assets", help="folder of the images named asset:F (default: [deck] assets)")
     b.add_argument("--macros", help="JSON file of TeX macros (default: [deck] macros)")
+    t = sub.add_parser("test-pronunciation", help="a page of players to compare candidate spellings")
+    t.add_argument("words", help="JSON: {word: [candidate spellings]}; see narrate.pronounce")
+    t.add_argument("--slides", help="slides page whose notes give the sentences (and its talk terms)")
+    t.add_argument("--sentences", type=int, help="sentences per word (default 2)")
+    t.add_argument("--reference-voice", help="Edge voice reading each word as written, e.g. pl-PL-MarekNeural")
+    t.add_argument("--tts", help="voice back-end (default: [voice] tts, else edge)")
+    t.add_argument("--voice", help="the talk's voice (default: [voice] voice)")
+    t.add_argument("--rate", help="speaking rate, e.g. +0%% (default: [voice] rate)")
+    t.add_argument("-d", "--dir", help="output folder (default: <narration_dir>/pronunciation)")
     args, rest = ap.parse_known_args(argv)
     if args.cmd == "render":
         cmd_render(args, rest)
@@ -382,6 +432,8 @@ def main(argv=None):
         cmd_config(args)
     elif args.cmd == "build-deck":
         cmd_build_deck(args)
+    elif args.cmd == "test-pronunciation":
+        cmd_test_pronunciation(args)
     else:
         cmd_publish(args)
 

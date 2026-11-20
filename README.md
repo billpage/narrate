@@ -5,7 +5,7 @@ self-contained web page (slides, audio player, transcript) by default,
 optionally a PowerPoint with click-to-play audio.
 
 ```bash
-pipx install "narrate[pptx] @ git+https://github.com/billpage/narrate@v0.4.0"
+pipx install "narrate[pptx] @ git+https://github.com/billpage/narrate@v0.5.0"
 voiceover --help      # the narrator itself
 narrate --help        # the narrator with a project's settings, and publishing
 ```
@@ -52,6 +52,22 @@ with `narrate build-deck talks/grassmann_to_clifford --foot "…"`, which also
 adds the shared page frame (notes panel, bar, navigation); see
 [`INTERFACE.md`](INTERFACE.md).
 
+To choose a spelling by ear, list candidates in a JSON file and make a page of
+players: each word read as written by a voice of its own language, and each
+spelling read by the talk's voice, alone and in sentences from the notes:
+
+```bash
+cat > names.json <<'END'
+{ "_reference_voice": "pl-PL-MarekNeural",
+  "Oziewicz": ["oh-zheh-veech", "oh-zhe-vitch"],
+  "Chevalley": {"candidates": ["Shuh-vah-lay"], "reference_voice": "fr-FR-HenriNeural"} }
+END
+narrate test-pronunciation names.json --slides talks/grassmann_to_clifford/grassmann_to_clifford.html
+```
+
+The page (in `<narration_dir>/pronunciation/`) marks the spelling now in use,
+and copies the chosen ones as JSON for a terms file.
+
 Options after the slides page go to `voiceover` (`--resynth 5`, `--tts piper`,
 …) and override `[voice]`; `--name` also names the folder, so two renders of
 one page (two voices, say) do not share one. Pronunciations are merged from three layers, a later
@@ -75,7 +91,7 @@ Version 0.1.0 is `src/narration/voiceover.py` from
 of `python3 voiceover.py`. Version 0.3.0 adds the `narrate` command in place of
 wpmw's `narrate.sh` and `publish_narrated.sh`. The rest of the plan (a deck
 builder for TeX sources, a pronunciation test page) is in [`PLAN.md`](PLAN.md);
-version 0.4.0 adds the deck builder.
+version 0.4.0 adds the deck builder and 0.5.0 the pronunciation test page.
 
 ## License
 

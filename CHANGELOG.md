@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.5.0 (19 November 2026)
+
+- `narrate test-pronunciation WORDS.json [--slides PAGE]`: one self-contained
+  page of players to choose spellings by ear. Per word: the word as written,
+  read by a reference voice of its own language (`_reference_voice`, or per
+  word; Edge); each spelling (the candidates, the one now in use, and the word
+  as written) read by the talk's voice alone and inside sentences from the
+  notes, the rest of each sentence spoken as in the talk. A spelling is sent as
+  it is, never through the pronunciations, so "as written" is heard as written.
+  One choice per word; "Copy JSON" gives `{written: spoken}`. Clips are cached
+  by voice, rate and text.
+- tests: 13 (new: the page end to end with the silent voice and the cache; the
+  exact texts sent to the voice; a bad words file).
+
+`voiceover`, `render`, `publish` and `build-deck` unchanged. Nothing to switch.
+
 ## 0.4.0 (19 November 2026)
 
 - `narrate build-deck TALK`: a slides page from `slides.html` and
