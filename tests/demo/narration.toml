@@ -6,6 +6,10 @@ output_worktree = "build/demo-output"
 terms = ["demo_terms.json"]
 hash_list = "talks/narrated.sha256"
 
+[deck]
+macros = "tex_macros.json"
+assets = "assets"
+
 [voice]
 tts = "silent"
 reencode = 32

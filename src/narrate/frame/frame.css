@@ -1,0 +1,27 @@
+/* narrate frame: stage and slide geometry (1920 x 1080, scaled to the window),
+   the notes panel, the bar and print. Added by `narrate build-deck` before the
+   source's own style, which sets everything else (colours, type, padding). */
+html, body { margin: 0; height: 100%; background: #1d232c; overflow: hidden; }
+#stage { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px;
+  transform-origin: 0 0; }
+.slide { position: absolute; left: 0; top: 0; width: 1920px; height: 1080px;
+  box-sizing: border-box; overflow: hidden; }
+@media screen { .slide:not(.current) { display: none !important; } }
+#bar { position: fixed; left: 0; right: 0; bottom: 0; display: flex; gap: 12px;
+  align-items: center; justify-content: center; padding: 6px; font-size: 14px;
+  color: #c9d1db; background: rgba(20,25,32,0.85); }
+#bar button { font: inherit; color: inherit; background: #2c3542; border: 1px solid #45505f;
+  border-radius: 6px; padding: 4px 12px; cursor: pointer; }
+#notes { position: fixed; top: 0; right: 0; bottom: 34px; width: 32vw; overflow: auto;
+  box-sizing: border-box; background: #fbfaf6; color: #1d232c; padding: 18px 24px;
+  font-size: 16px; line-height: 1.55; white-space: pre-wrap; border-left: 3px solid #2F5D8A;
+  display: none; }
+#notes.show { display: block; }
+#notes.below { left: 0; width: auto; border-left: 0; border-top: 3px solid #2F5D8A; }
+@media print {
+  html, body { overflow: visible; height: auto; background: none; }
+  #bar, #notes { display: none !important; }
+  #stage { position: static; transform: none !important; width: auto; height: auto; }
+  .slide { position: relative; page-break-after: always; zoom: 0.5; }
+  @page { size: 960px 540px; margin: 0; }
+}
