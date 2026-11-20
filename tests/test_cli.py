@@ -216,3 +216,46 @@ def test_build_deck_refusals(project):
                                       '<img src="asset:none.png"></section></div></body></html>')
     r = narrate(project["root"], "build-deck", "talks/bad", check=False)
     assert r.returncode == 1 and "asset not found" in r.stdout
+
+
+@needs_ffmpeg
+def test_pronunciation_page(project, tmp_path):
+    words = tmp_path / "names.json"
+    words.write_text(json.dumps({"_reference_voice": "pl-PL-MarekNeural", "Oziewicz": ["oh-zee-vich"]}))
+    args = ("test-pronunciation", str(words), "--slides", "talks/demo/demo.html", "-d", str(tmp_path / "pt"))
+    r = narrate(project["root"], *args)
+    assert "1 words; 7 clips made, 0 kept" in r.stdout        # reference + 3 spellings x (alone, 1 sentence)
+    page = (tmp_path / "pt" / "names_pronunciation.html").read_text(encoding="utf-8")
+    assert page.count("<audio") == 7 and "pl-PL-MarekNeural" in page
+    assert 'value="oh-zheh-veech" data-word="Oziewicz" checked' in page   # the current spelling, chosen
+    assert '<span class="tag">current</span>' in page and '<span class="tag">as written</span>' in page
+    assert "<li>Oziewicz wrote ℏ for the reduced constant.</li>" in page
+    r = narrate(project["root"], *args)
+    assert "0 clips made, 7 kept" in r.stdout
+
+
+def test_pronunciation_texts(tmp_path, monkeypatch):
+    from narrate import pronounce
+    sent = []
+    monkeypatch.setattr(pronounce.Synth, "__call__", lambda self, text, voice: sent.append((voice, text)) or "data:,")
+    words = tmp_path / "w.json"
+    words.write_text(json.dumps({"Chevalley": {"candidates": ["Sheh-vah-lee"], "reference_voice": "fr-FR-HenriNeural"}}))
+    notes = ["Long ago. It is Chevalley's theorem, and Oziewicz uses it.", "No name here."]
+    terms = {"Chevalley": "Shuh-vah-lay", "Oziewicz": "oh-zheh-veech"}
+    pronounce.build(words, tmp_path, tts="edge", voice="en-CA-LiamNeural", rate="+0%", terms=terms, notes=notes)
+    assert sent == [
+        ("fr-FR-HenriNeural", "Chevalley"),                                       # reference: as written
+        ("en-CA-LiamNeural", "Shuh-vah-lay"),                                     # current
+        ("en-CA-LiamNeural", "It is Shuh-vah-lay's theorem, and oh-zheh-veech uses it."),
+        ("en-CA-LiamNeural", "Sheh-vah-lee"),
+        ("en-CA-LiamNeural", "It is Sheh-vah-lee's theorem, and oh-zheh-veech uses it."),
+        ("en-CA-LiamNeural", "Chevalley"),                                        # as written: not through the terms
+        ("en-CA-LiamNeural", "It is Chevalley's theorem, and oh-zheh-veech uses it."),
+    ]
+
+
+def test_pronunciation_bad_words_file(project, tmp_path):
+    words = tmp_path / "bad.json"
+    words.write_text(json.dumps({"Oziewicz": "oh-zheh-veech"}))
+    r = narrate(project["root"], "test-pronunciation", str(words), "-d", str(tmp_path / "pt"), check=False)
+    assert r.returncode == 1 and "needs a list of candidate spellings" in r.stdout
